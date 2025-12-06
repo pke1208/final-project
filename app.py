@@ -30,7 +30,7 @@ SYMBOLS = ['🍒', '🍋', '🍊', '🍇', '⭐', '💎', '7️⃣', '🔔']
 INITIAL_WIN_SPINS = 5
 INITIAL_WIN_RATE = 0.50  # Changed from 0.40 to 0.50 (50% win rate)
 HOUSE_ADVANTAGE_START = 6
-HOUSE_WIN_PROBABILITY = 0.10  # Changed from 0.85 to 0.10 (90% win rate after 5 spins)
+HOUSE_WIN_PROBABILITY = 0.90  # Changed from 0.85 to 0.10 (90% win rate after 5 spins)
 
 def check_win(reels):
     """Check if reels result in a win and calculate payout multiplier"""
