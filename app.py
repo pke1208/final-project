@@ -40,18 +40,26 @@ def check_win(reels):
     
     max_count = max(symbol_counts.values())
     
+    # Adjust multipliers based on spin count (lower payouts in first 10 spins)
+    is_early_game = st.session_state.total_spins <= INITIAL_WIN_SPINS
+    
     if max_count == 5:
         winning_symbol = [s for s, c in symbol_counts.items() if c == 5][0]
         if winning_symbol == '💎':
-            return True, 100, "💎 DIAMOND JACKPOT! 💎"
+            multiplier = 20 if is_early_game else 100
+            return True, multiplier, "💎 DIAMOND JACKPOT! 💎"
         elif winning_symbol == '7️⃣':
-            return True, 50, "7️⃣ LUCKY SEVENS! 7️⃣"
+            multiplier = 10 if is_early_game else 50
+            return True, multiplier, "7️⃣ LUCKY SEVENS! 7️⃣"
         else:
-            return True, 30, "🎰 FIVE OF A KIND! 🎰"
+            multiplier = 8 if is_early_game else 30
+            return True, multiplier, "🎰 FIVE OF A KIND! 🎰"
     elif max_count == 4:
-        return True, 15, "✨ FOUR OF A KIND! ✨"
+        multiplier = 4 if is_early_game else 15
+        return True, multiplier, "✨ FOUR OF A KIND! ✨"
     elif max_count == 3:
-        return True, 5, "🎉 THREE OF A KIND! 🎉"
+        multiplier = 2 if is_early_game else 5
+        return True, multiplier, "🎉 THREE OF A KIND! 🎉"
     
     return False, 0, ""
 
@@ -269,18 +277,36 @@ if st.session_state.balance < bet_amount:
 # Payout table
 st.markdown("---")
 st.markdown("### 💰 PAYOUT TABLE")
-col1, col2 = st.columns(2)
-with col1:
-    st.markdown("""
-    - **💎💎💎💎💎** → 100x bet
-    - **7️⃣7️⃣7️⃣7️⃣7️⃣** → 50x bet
-    - **Any 5 of a kind** → 30x bet
-    """)
-with col2:
-    st.markdown("""
-    - **Any 4 of a kind** → 15x bet
-    - **Any 3 of a kind** → 5x bet
-    """)
+
+# Show different payouts based on game stage
+if st.session_state.total_spins <= INITIAL_WIN_SPINS:
+    st.info("🎮 Early Game Payouts (First 10 Spins)")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("""
+        - **💎💎💎💎💎** → 20x bet
+        - **7️⃣7️⃣7️⃣7️⃣7️⃣** → 10x bet
+        - **Any 5 of a kind** → 8x bet
+        """)
+    with col2:
+        st.markdown("""
+        - **Any 4 of a kind** → 4x bet
+        - **Any 3 of a kind** → 2x bet
+        """)
+else:
+    st.success("🔥 Full Payouts (After 10 Spins)")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("""
+        - **💎💎💎💎💎** → 100x bet
+        - **7️⃣7️⃣7️⃣7️⃣7️⃣** → 50x bet
+        - **Any 5 of a kind** → 30x bet
+        """)
+    with col2:
+        st.markdown("""
+        - **Any 4 of a kind** → 15x bet
+        - **Any 3 of a kind** → 5x bet
+        """)
 
 st.markdown("---")
 st.caption("⚠️ This is for entertainment purposes only. Always gamble responsibly!")
