@@ -278,73 +278,104 @@
 # st.markdown("---")
 # st.caption("⚠️ This is for entertainment purposes only. Always gamble responsibly!")
 
+
 import streamlit as st
 import random
 
-# Constants
+# Game Configuration
 REELS = 5
-SYMBOLS = ["🍒", "🍋", "🔔", "⭐", "💎"]  # Example slot symbols
+SYMBOLS = ["🍒", "🍋", "🔔", "⭐", "💎", "7️⃣"]
+START_BALANCE = 1000
 
-# Session state
-if "balance" not in st.session_state:
-    st.session_state.balance = 1000  # Starting balance
-if "round" not in st.session_state:
-    st.session_state.round = 0
+def initialize_session():
+    if "balance" not in st.session_state:
+        st.session_state.balance = START_BALANCE
+    if "round" not in st.session_state:
+        st.session_state.round = 0
+    if "history" not in st.session_state:
+        st.session_state.history = []
 
-st.title("🎰 Slot Machine Game")
+def user_input():
+    st.title("🎰 Streamlit Slot Machine")
+    bet = st.number_input("Your Bet Amount", min_value=1, max_value=st.session_state.balance, value=10)
+    play = st.button("Spin the Reels!")
+    return bet, play
 
-# Input bet
-bet = st.number_input("Enter your bet amount:", min_value=1, max_value=st.session_state.balance, value=10)
-
-spin = st.button("Spin!")
-
-def spin_reels(forced_win=False):
-    if forced_win:
-        # Guarantee at least a 3-reel match for a win
-        match_symbol = random.choice(SYMBOLS)
-        reels = [match_symbol] * 3 + random.choices(SYMBOLS, k=REELS - 3)
-        random.shuffle(reels)
+def weighted_spin_logic(round_num):
+    """ Control win/loss ratio by round number and randomness """
+    # Win first 2 rounds, then decrease probability for wins
+    if round_num <= 2:
+        return True
+    elif 3 <= round_num <= 7:
+        return random.random() < 0.5   # 50% win
     else:
-        # Random, normal spin
-        reels = random.choices(SYMBOLS, k=REELS)
-    return reels
+        return random.random() < 0.2   # 20% win, slot wins mostly
+    # You can fine-tune these probabilities!
 
-def calculate_win(reels, bet):
-    # Count longest streak of same symbol
-    max_count = max(reels.count(s) for s in SYMBOLS)
+def spin_reels(force_win=False):
+    """ Simulate reels. If force_win, guarantee a match. """
+    if force_win:
+        symbol = random.choice(SYMBOLS)
+        win_reels = [symbol] * 3 + random.choices(SYMBOLS, k=REELS-3)
+        random.shuffle(win_reels)
+        return win_reels
+    else:
+        return random.choices(SYMBOLS, k=REELS)
+
+def evaluate_spin(reels):
+    """ Returns payout value and win status. More sophisticated logic possible. """
+    counts = {s: reels.count(s) for s in SYMBOLS}
+    max_symbol, max_count = max(counts.items(), key=lambda x: x[1])
     if max_count >= 3:
-        # Win: payout scales with streak and bet
-        payout = bet * max_count
-        return payout, True
+        return max_count * 10, True  # Payout scaling
     return 0, False
 
-if spin:
-    st.session_state.round += 1
-    forced_win = False
+def update_history(reels, bet, won, payout):
+    st.session_state.history.append({
+        "round": st.session_state.round,
+        "reels": reels,
+        "bet": bet,
+        "won": won,
+        "payout": payout,
+        "balance": st.session_state.balance,
+    })
 
-    # Win the first 2 rounds
-    if st.session_state.round in [1, 2]:  
-        forced_win = True
-    # After that, player wins with lower probability (25%)
-    elif st.session_state.round > 2 and random.random() < 0.25:
-        forced_win = True
-
-    reels = spin_reels(forced_win=forced_win)
-    payout, win = calculate_win(reels, bet)
-    
-    st.write(' | '.join(reels))
-    if win:
-        st.success(f"You won! 🎉 Payout: {payout}")
-        st.session_state.balance += payout
+def show_history():
+    st.subheader("Game History")
+    if st.session_state.history:
+        for spin in st.session_state.history[-10:][::-1]:  # last 10 spins, newest first
+            st.write(f"Round {spin['round']}: {'|'.join(spin['reels'])} | "
+                     f"Bet: {spin['bet']} | {'Win' if spin['won'] else 'Lose'} | "
+                     f"Payout: {spin['payout']} | Balance: {spin['balance']}")
     else:
-        st.warning(f"You lost! Lost bet: {bet}")
-        st.session_state.balance -= bet
-    
-    st.write(f"Balance: {st.session_state.balance}")
+        st.write("No spins yet!")
 
-    if st.session_state.balance <= 0:
-        st.error("Game Over! You're out of balance. Please reload the page.")
-else:
-    st.write(f"Balance: {st.session_state.balance}")
+def main():
+    initialize_session()
+    bet, play = user_input()
+    show_history()
 
-st.markdown("Made with Streamlit. [View on GitHub](https://github.com)")  # Replace with your repo URL
+    if play:
+        st.session_state.round += 1
+        force_win = weighted_spin_logic(st.session_state.round)
+        reels = spin_reels(force_win=force_win)
+        payout, won = evaluate_spin(reels)
+
+        st.markdown(f"## {' | '.join(reels)}")
+        if won:
+            st.success(f"You won! Payout: {payout}")
+            st.session_state.balance += payout
+        else:
+            st.error(f"You lost! Lost bet: {bet}")
+            st.session_state.balance -= bet
+
+        update_history(reels, bet, won, payout)
+        st.markdown(f"**Current Balance:** {st.session_state.balance}")
+
+        if st.session_state.balance <= 0:
+            st.error("Game Over! Reload the page to start again.")
+
+    st.markdown("[Your GitHub Repo](https://github.com)")  # Replace with your repo URL
+
+if __name__ == "__main__":
+    main()
