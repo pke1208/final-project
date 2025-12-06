@@ -356,6 +356,7 @@
 import streamlit as st
 import random
 import os
+import string
 
 # Fallback word list
 DEFAULT_WORDS = [
@@ -524,10 +525,9 @@ if not st.session_state.game_over:
 
         if submitted:
             guess = guess_input.strip().lower()
+            # Only validity check: 5 letters, alphabetic
             if len(guess) != 5 or not guess.isalpha():
-                message = "🚫 Enter a 5-letter word."
-            elif guess not in words:
-                message = "🚫 Not in word list."
+                message = "🚫 Enter a 5-letter alphabetic word."
             else:
                 feedback = check_guess(guess, target_word)
                 st.session_state.guesses.append((guess, feedback))
@@ -547,8 +547,9 @@ if not st.session_state.game_over:
 if st.session_state.game_over:
     st.divider()
     if st.button("Play Again"):
+        # Clear everything for new game, don't rerun immediately
         st.session_state.guesses = []
         st.session_state.target_word = random.choice(words)
         st.session_state.keyboard = {}
         st.session_state.game_over = False
-        st.experimental_rerun()
+        st.experimental_rerun()  # Triggers clean rerun after state is set
