@@ -355,13 +355,24 @@
 
 import streamlit as st
 import random
+import os
 
-# --- Load words ---
+# Fallback word list
+DEFAULT_WORDS = [
+    "apple", "baker", "couch", "drink", "eagle", "flame", "giant", "habit", "ideal", "joker",
+    "knife", "lemon", "magic", "night", "ocean", "piano", "queen", "robot", "shark", "tease",
+    "union", "vivid", "whale", "xenon", "yacht", "zebra"
+]
+
 @st.cache_data
 def load_word_list(filepath="words.txt"):
-    with open(filepath) as f:
-        words = [line.strip().lower() for line in f if len(line.strip()) == 5 and line.strip().isalpha()]
-    return words
+    if os.path.exists(filepath):
+        with open(filepath) as f:
+            words = [line.strip().lower() for line in f if len(line.strip()) == 5 and line.strip().isalpha()]
+        if words:
+            return words
+    # fallback
+    return DEFAULT_WORDS
 
 def get_target_word(words):
     if "target_word" not in st.session_state:
@@ -448,9 +459,6 @@ if "stats" not in st.session_state:
     st.session_state.stats = {"wins": 0, "losses": 0}
 
 words = load_word_list()
-if not words:
-    st.error("Word list missing or empty! Add 5-letter words to words.txt.")
-    st.stop()
 
 target_word = get_target_word(words)
 
