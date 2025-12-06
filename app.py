@@ -27,9 +27,9 @@ if 'spinning' not in st.session_state:
 SYMBOLS = ['🍒', '🍋', '🍊', '🍇', '⭐', '💎', '7️⃣', '🔔']
 
 # Strategic parameters
-INITIAL_WIN_SPINS = 10
+INITIAL_WIN_SPINS = 5
 INITIAL_WIN_RATE = 0.40
-HOUSE_ADVANTAGE_START = 11
+HOUSE_ADVANTAGE_START = 6
 HOUSE_WIN_PROBABILITY = 0.85
 
 def check_win(reels):
@@ -40,7 +40,7 @@ def check_win(reels):
     
     max_count = max(symbol_counts.values())
     
-    # Adjust multipliers based on spin count (lower payouts in first 10 spins)
+    # Adjust multipliers based on spin count (lower payouts in first 5 spins)
     is_early_game = st.session_state.total_spins <= INITIAL_WIN_SPINS
     
     if max_count == 5:
@@ -182,6 +182,48 @@ st.markdown("""
 # Title
 st.markdown("<h1 style='text-align: center; color: #ffd700; text-shadow: 2px 2px 4px #000000;'>🎰 MEGA SLOT MACHINE 🎰</h1>", unsafe_allow_html=True)
 
+# Rule Book Section
+with st.expander("📖 RULE BOOK - Click to Read", expanded=False):
+    st.markdown("""
+    ### 🎯 How to Play
+    1. **Set Your Bet**: Enter your desired bet amount (minimum $10)
+    2. **Spin the Reels**: Click the SPIN button to start
+    3. **Match Symbols**: Get 3, 4, or 5 matching symbols to win!
+    
+    ### 💰 Payout Structure
+    
+    #### Early Game (First 5 Spins)
+    - **Three of a Kind**: 2x your bet
+    - **Four of a Kind**: 4x your bet
+    - **Five of a Kind**: 8x your bet
+    - **Lucky Sevens (7️⃣7️⃣7️⃣7️⃣7️⃣)**: 10x your bet
+    - **Diamond Jackpot (💎💎💎💎💎)**: 20x your bet
+    
+    #### Full Game (After 5 Spins)
+    - **Three of a Kind**: 5x your bet
+    - **Four of a Kind**: 15x your bet
+    - **Five of a Kind**: 30x your bet
+    - **Lucky Sevens (7️⃣7️⃣7️⃣7️⃣7️⃣)**: 50x your bet
+    - **Diamond Jackpot (💎💎💎💎💎)**: 100x your bet
+    
+    ### 🎲 Game Mechanics
+    - Starting balance: **$1,000**
+    - Minimum bet: **$10**
+    - Win rate adjusts based on number of spins
+    - Your bet amount is saved between spins
+    - Use the RESET button to restart with $1,000
+    
+    ### 🎰 Symbols
+    🍒 Cherry | 🍋 Lemon | 🍊 Orange | 🍇 Grape | ⭐ Star | 💎 Diamond | 7️⃣ Seven | 🔔 Bell
+    
+    ### ⚠️ Important
+    - This is for entertainment purposes only
+    - Always gamble responsibly
+    - Set limits and stick to them
+    """)
+
+st.markdown("---")
+
 # Stats row
 col1, col2, col3, col4 = st.columns(4)
 with col1:
@@ -280,7 +322,7 @@ st.markdown("### 💰 PAYOUT TABLE")
 
 # Show different payouts based on game stage
 if st.session_state.total_spins <= INITIAL_WIN_SPINS:
-    st.info("🎮 Early Game Payouts (First 10 Spins)")
+    st.info("🎮 Early Game Payouts (First 5 Spins)")
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("""
@@ -294,7 +336,7 @@ if st.session_state.total_spins <= INITIAL_WIN_SPINS:
         - **Any 3 of a kind** → 2x bet
         """)
 else:
-    st.success("🔥 Full Payouts (After 10 Spins)")
+    st.success("🔥 Full Payouts (After 5 Spins)")
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("""
