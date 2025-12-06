@@ -195,14 +195,14 @@ with st.expander("📖 RULE BOOK - Click to Read", expanded=False):
     
     ### 💰 Payout Structure
     
-    #### Early Game (First 5 Spins) - 50% Win Rate
+    #### Early Game (First 5 Spins)
     - **Three of a Kind**: 2x your bet
     - **Four of a Kind**: 4x your bet
     - **Five of a Kind**: 8x your bet
     - **Lucky Sevens (7️⃣7️⃣7️⃣7️⃣7️⃣)**: 10x your bet
     - **Diamond Jackpot (💎💎💎💎💎)**: 20x your bet
     
-    #### Full Game (After 5 Spins) - 90% Win Rate
+    #### Full Game (After 5 Spins)
     - **Three of a Kind**: 5x your bet
     - **Four of a Kind**: 15x your bet
     - **Five of a Kind**: 30x your bet
@@ -326,7 +326,7 @@ st.markdown("### 💰 PAYOUT TABLE")
 
 # Show different payouts based on game stage
 if st.session_state.total_spins <= INITIAL_WIN_SPINS:
-    st.info("🎮 Early Game Payouts (First 5 Spins - 50% Win Rate)")
+    st.info("🎮 Early Game Payouts (First 5 Spins)")
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("""
@@ -340,7 +340,7 @@ if st.session_state.total_spins <= INITIAL_WIN_SPINS:
         - **Any 3 of a kind** → 2x bet
         """)
 else:
-    st.success("🔥 Full Payouts (After 5 Spins - 90% Win Rate)")
+    st.success("🔥 Full Payouts (After 5 Spins)")
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("""
