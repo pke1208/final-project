@@ -71,4 +71,4 @@ def generate_winning_reels():
     elif win_type == 'four':
         # 4 of a kind
         symbol = random.choice(SYMBOLS)
-        other = random.choice([s for s in SYMBOLS if s != sy
+        other = random.choice([s for s in SYMBOLS if s != sy])
