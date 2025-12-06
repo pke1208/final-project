@@ -2,46 +2,64 @@ import streamlit as st
 import random
 import time
 
-# -------- CONFIG & SYMBOLS -------- #
+# -------- SLOT SETTINGS -------- #
 SYMBOLS = ['🍒', '🍋', '🍊', '🍇', '⭐', '💎', '7️⃣', '🔔']
 REELS = 5
-
 START_BALANCE = 1000
-INITIAL_WIN_SPINS = 5        # Only three-of-a-kind wins allowed for first 5 spins
-HOUSE_WIN_PROBABILITY = 0.75 # 75% lose rate after initial wins
+INITIAL_WIN_SPINS = 5        # Player can only get "three of a kind" in first N spins
+HOUSE_WIN_PROBABILITY = 0.75 # After N spins, lose probability is 75%
 
 # -------- STATE INITIALIZATION -------- #
 def init_session():
-    st.session_state.setdefault("balance", START_BALANCE)
-    st.session_state.setdefault("total_spins", 0)
-    st.session_state.setdefault("total_wins", 0)
-    st.session_state.setdefault("reels", random.sample(SYMBOLS, REELS))
-    st.session_state.setdefault("message", "Place your bet and spin!")
-    st.session_state.setdefault("last_win_amount", 0)
+    if "balance" not in st.session_state:
+        st.session_state.balance = START_BALANCE
+    if "total_spins" not in st.session_state:
+        st.session_state.total_spins = 0
+    if "total_wins" not in st.session_state:
+        st.session_state.total_wins = 0
+    if "reels" not in st.session_state:
+        st.session_state.reels = random.sample(SYMBOLS, REELS)
+    if "message" not in st.session_state:
+        st.session_state.message = "Place your bet and spin!"
+    if "last_win_amount" not in st.session_state:
+        st.session_state.last_win_amount = 0
 
-# -------- SPINNING ANIMATION -------- #
+# -------- SLOT ANIMATION & DISPLAY -------- #
 def animate_spin(duration=1.2, frame_delay=0.13):
-    """Show rolling animation of the reels."""
     anim_placeholder = st.empty()
     num_frames = int(duration / frame_delay)
-    symbol_sequences = [
-        [random.choice(SYMBOLS) for _ in range(num_frames)]
-        for _ in range(REELS)
-    ]
     for frame in range(num_frames):
         cols = anim_placeholder.columns(REELS)
         for i, col in enumerate(cols):
-            with col:
-                col.markdown(
-                    f"<div style='font-size:60px; text-align:center'>{symbol_sequences[i][frame]}</div>",
-                    unsafe_allow_html=True,
-                )
+            col.markdown(
+                f"""<div style='background:white;border-radius:15px;padding:20px;
+                font-size:60px;text-align:center;border:4px solid gold;min-width:70px;min-height:70px;
+                display:flex;align-items:center;justify-content:center;'>
+                {random.choice(SYMBOLS)}
+                </div>""", unsafe_allow_html=True,
+            )
         time.sleep(frame_delay)
     anim_placeholder.empty()
 
-# -------- SLOT MACHINE LOGIC -------- #
+def slot_board_display():
+    st.markdown(
+        "<div style='background:linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);"
+        "padding:30px;border-radius:20px;margin:20px 0;display: flex; justify-content: center;'>",
+        unsafe_allow_html=True,
+    )
+    cols = st.columns(REELS)
+    for i, col in enumerate(cols):
+        col.markdown(
+            f"""<div style='background:white;border-radius:15px;padding:20px;
+            font-size:60px;text-align:center;border:4px solid gold;min-width:70px;min-height:70px;
+            display:flex;align-items:center;justify-content:center;'>
+            {st.session_state.reels[i]}
+            </div>""", unsafe_allow_html=True,
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# -------- GAME LOGIC -------- #
 def generate_winning_reels(allowed_types):
-    """Generate reels resulting in a win of certain types."""
     win_type = random.choice(allowed_types)
     symbol = random.choice(SYMBOLS)
     if win_type == "three":
@@ -58,18 +76,15 @@ def generate_winning_reels(allowed_types):
         return [symbol] * REELS
 
 def generate_losing_reels():
-    """Generate a non-winning reels combination."""
     for _ in range(100):
         reels = [random.choice(SYMBOLS) for _ in range(REELS)]
-        is_win, *_ = check_win(reels)
-        if not is_win:
+        if not check_win(reels)[0]:
             return reels
-    # Fallback (safe, avoids infinite loop)
+    # fallback; almost impossible, but covers edge case:
     return random.sample(SYMBOLS, REELS)
 
 def check_win(reels):
-    """Return (is_win, payout_multiplier, win_message)"""
-    counts = {s:reels.count(s) for s in SYMBOLS}
+    counts = {s: reels.count(s) for s in SYMBOLS}
     max_count = max(counts.values())
     # 5 of a kind
     if max_count == 5:
@@ -86,18 +101,17 @@ def check_win(reels):
     return False, 0, ""
 
 def spin_slot(bet_amount):
-    """Main spinning logic—controls win kind, payout, and updates game state."""
     st.session_state.balance -= bet_amount
     st.session_state.total_spins += 1
 
+    # Rigged: first N spins can win ONLY "three", after that, any win type.
     if st.session_state.total_spins <= INITIAL_WIN_SPINS:
-        # Early spins: only allow 3 of a kind
         should_win = True
-        allowed_win_types = ["three"]
+        allowed_win_types = ['three']
     else:
         should_win = random.random() > HOUSE_WIN_PROBABILITY
-        allowed_win_types = ["three", "four", "five"]
-
+        allowed_win_types = ['three', 'four', 'five']
+    
     if should_win:
         reels = generate_winning_reels(allowed_win_types)
     else:
@@ -115,7 +129,7 @@ def spin_slot(bet_amount):
         st.session_state.last_win_amount = 0
         st.session_state.message = "😔 No win this time. Try again!"
 
-# -------- GAME BOARD, UI, HISTORY -------- #
+# -------- UI: METRICS, MSG, PAYOUT -------- #
 def show_metrics():
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("💰 Balance", f"${st.session_state.balance}")
@@ -126,26 +140,11 @@ def show_metrics():
         if st.session_state.total_spins > 0 else 0
     )
     col4.metric("📊 Win Rate", f"{win_rate:.1f}%")
-
-def slot_board_display():
-    st.markdown("<div style='background:linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);"
-        "padding:30px;border-radius:20px;margin:20px 0;'>", unsafe_allow_html=True)
-    cols = st.columns(REELS)
-    for i, col in enumerate(cols):
-        with col:
-            col.markdown(
-                f"<div style='background:white;border-radius:15px;padding:20px;"
-                "font-size:60px;text-align:center;border:4px solid gold;'>{st.session_state.reels[i]}</div>",
-                unsafe_allow_html=True,
-            )
-    st.markdown("</div>", unsafe_allow_html=True)
-
 def show_message():
     if st.session_state.last_win_amount > 0:
         st.success(st.session_state.message, icon="🎉")
     else:
         st.info(st.session_state.message)
-
 def payout_table():
     st.markdown("---")
     st.markdown("### 💰 PAYOUT TABLE")
@@ -162,10 +161,9 @@ def payout_table():
             "- **Any 3 of a kind** → 5x bet"
         )
 
-# -------- MAIN APP LAYOUT -------- #
+# -------- MAIN APP -------- #
 def main():
     st.set_page_config(page_title="Slot Machine", page_icon="🎰", layout="centered")
-    # Custom CSS
     st.markdown("""
         <style>
         .stButton>button { background: linear-gradient(90deg, #56ab2f 0%, #a8e063 100%);
@@ -180,7 +178,6 @@ def main():
     init_session()
     st.markdown("<h1 style='text-align:center; color:#ffd700; text-shadow:2px 2px 4px #000000;'>🎰 MEGA SLOT MACHINE 🎰</h1>", unsafe_allow_html=True)
     show_metrics()
-
     st.markdown("---")
     bet_amount = st.number_input(
         "💵 Enter your bet amount:",
@@ -189,11 +186,9 @@ def main():
         value=min(50, st.session_state.balance) if st.session_state.balance > 0 else 10,
         step=10
     )
-
     slot_board_display()
     show_message()
 
-    # --- Controls --- #
     st.markdown("---")
     col_spin, col_reset = st.columns([3, 1])
     with col_spin:
@@ -204,7 +199,6 @@ def main():
                 st.rerun()
             else:
                 st.error("Insufficient balance!")
-
     with col_reset:
         if st.button("🔄 RESET"):
             for key in ["balance", "total_spins", "total_wins", "reels", "message", "last_win_amount"]:
