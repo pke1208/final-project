@@ -18,6 +18,10 @@ if 'message' not in st.session_state:
     st.session_state.message = "Place your bet and spin!"
 if 'last_win_amount' not in st.session_state:
     st.session_state.last_win_amount = 0
+if 'bet_amount' not in st.session_state:
+    st.session_state.bet_amount = 50
+if 'spinning' not in st.session_state:
+    st.session_state.spinning = False
 
 # Symbols for the slot machine
 SYMBOLS = ['🍒', '🍋', '🍊', '🍇', '⭐', '💎', '7️⃣', '🔔']
@@ -152,6 +156,17 @@ st.markdown("""
         text-align: center;
         box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         border: 4px solid gold;
+        transition: transform 0.1s;
+    }
+    @keyframes spin {
+        0% { transform: translateY(0px); }
+        25% { transform: translateY(-10px); }
+        50% { transform: translateY(0px); }
+        75% { transform: translateY(10px); }
+        100% { transform: translateY(0px); }
+    }
+    .spinning {
+        animation: spin 0.15s infinite;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -180,17 +195,22 @@ bet_amount = st.number_input(
     "💵 Enter your bet amount:",
     min_value=10,
     max_value=st.session_state.balance if st.session_state.balance > 0 else 10,
-    value=min(50, st.session_state.balance) if st.session_state.balance > 0 else 10,
-    step=10
+    value=st.session_state.bet_amount,
+    step=10,
+    key='bet_input'
 )
+
+# Update bet amount in session state
+st.session_state.bet_amount = bet_amount
 
 # Slot machine display
 st.markdown("<div class='slot-container'>", unsafe_allow_html=True)
 
 cols = st.columns(5)
+spin_class = "spinning" if st.session_state.spinning else ""
 for i, col in enumerate(cols):
     with col:
-        st.markdown(f"<div class='reel'>{st.session_state.reels[i]}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='reel {spin_class}'>{st.session_state.reels[i]}</div>", unsafe_allow_html=True)
 
 st.markdown("</div>", unsafe_allow_html=True)
 
@@ -207,16 +227,23 @@ col_spin, col_reset = st.columns([3, 1])
 with col_spin:
     if st.button("🎰 SPIN 🎰", disabled=(st.session_state.balance < bet_amount)):
         if st.session_state.balance >= bet_amount:
+            st.session_state.spinning = True
             placeholder = st.empty()
-            for _ in range(3):
+            
+            # Spinning animation with multiple cycles
+            for cycle in range(10):
                 temp_reels = [random.choice(SYMBOLS) for _ in range(5)]
                 with placeholder.container():
+                    st.markdown("<div class='slot-container'>", unsafe_allow_html=True)
                     cols = st.columns(5)
                     for i, col in enumerate(cols):
                         with col:
-                            st.markdown(f"<div class='reel'>{temp_reels[i]}</div>", unsafe_allow_html=True)
-                time.sleep(0.2)
+                            st.markdown(f"<div class='reel spinning'>{temp_reels[i]}</div>", unsafe_allow_html=True)
+                    st.markdown("</div>", unsafe_allow_html=True)
+                time.sleep(0.1)
             
+            # Final result
+            st.session_state.spinning = False
             spin_slot(bet_amount)
             placeholder.empty()
             st.rerun()
@@ -231,6 +258,8 @@ with col_reset:
         st.session_state.reels = ['🍒', '🍋', '🍊', '🍇', '⭐']
         st.session_state.message = "Place your bet and spin!"
         st.session_state.last_win_amount = 0
+        st.session_state.bet_amount = 50
+        st.session_state.spinning = False
         st.rerun()
 
 # Warning message if balance is low
