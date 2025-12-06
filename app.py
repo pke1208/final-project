@@ -23,22 +23,19 @@ if 'last_win_amount' not in st.session_state:
 SYMBOLS = ['🍒', '🍋', '🍊', '🍇', '⭐', '💎', '7️⃣', '🔔']
 
 # Strategic parameters
-INITIAL_WIN_SPINS = 5  # First 5 spins have special win rate
-INITIAL_WIN_RATE = 0.60  # 60% win rate in first 5 spins (hook them but not too obvious)
-HOUSE_ADVANTAGE_START = 6  # After spin 5, house advantage kicks in
-HOUSE_WIN_PROBABILITY = 0.75  # 75% lose rate after initial wins
+INITIAL_WIN_SPINS = 10
+INITIAL_WIN_RATE = 0.40
+HOUSE_ADVANTAGE_START = 11
+HOUSE_WIN_PROBABILITY = 0.85
 
 def check_win(reels):
     """Check if reels result in a win and calculate payout multiplier"""
-    
-    # Count occurrences of each symbol
     symbol_counts = {}
     for symbol in reels:
         symbol_counts[symbol] = symbol_counts.get(symbol, 0) + 1
     
     max_count = max(symbol_counts.values())
     
-    # 5 of a kind - JACKPOT
     if max_count == 5:
         winning_symbol = [s for s, c in symbol_counts.items() if c == 5][0]
         if winning_symbol == '💎':
@@ -47,16 +44,11 @@ def check_win(reels):
             return True, 50, "7️⃣ LUCKY SEVENS! 7️⃣"
         else:
             return True, 30, "🎰 FIVE OF A KIND! 🎰"
-    
-    # 4 of a kind
     elif max_count == 4:
         return True, 15, "✨ FOUR OF A KIND! ✨"
-    
-    # 3 of a kind
     elif max_count == 3:
         return True, 5, "🎉 THREE OF A KIND! 🎉"
     
-    # No win
     return False, 0, ""
 
 def generate_winning_reels():
@@ -64,20 +56,15 @@ def generate_winning_reels():
     win_type = random.choice(['three', 'four', 'five'])
     
     if win_type == 'five':
-        # 5 of a kind
         symbol = random.choice(SYMBOLS)
         return [symbol] * 5
-    
     elif win_type == 'four':
-        # 4 of a kind
         symbol = random.choice(SYMBOLS)
         other = random.choice([s for s in SYMBOLS if s != symbol])
         result = [symbol] * 4 + [other]
         random.shuffle(result)
         return result
-    
     else:
-        # 3 of a kind
         symbol = random.choice(SYMBOLS)
         others = random.sample([s for s in SYMBOLS if s != symbol], 2)
         result = [symbol] * 3 + others
@@ -94,27 +81,20 @@ def generate_losing_reels():
             return result
         attempts += 1
     
-    # Fallback: force a losing combination
     return [SYMBOLS[0], SYMBOLS[1], SYMBOLS[2], SYMBOLS[3], SYMBOLS[4]]
 
 def spin_slot(bet_amount):
     """Main slot machine logic with rigging"""
-    
-    # Deduct bet
     st.session_state.balance -= bet_amount
     st.session_state.total_spins += 1
     
-    # Strategic rigging logic
     should_win = False
     
     if st.session_state.total_spins <= INITIAL_WIN_SPINS:
-        # 60% win rate in first 5 spins (about 3 wins, 2 losses)
         should_win = random.random() < INITIAL_WIN_RATE
     else:
-        # After initial spins, house advantage kicks in (75% lose rate)
         should_win = random.random() > HOUSE_WIN_PROBABILITY
     
-    # Generate reels based on strategy
     if should_win:
         new_reels = generate_winning_reels()
     else:
@@ -122,7 +102,6 @@ def spin_slot(bet_amount):
     
     st.session_state.reels = new_reels
     
-    # Check result
     is_win, multiplier, win_message = check_win(new_reels)
     
     if is_win:
@@ -228,7 +207,6 @@ col_spin, col_reset = st.columns([3, 1])
 with col_spin:
     if st.button("🎰 SPIN 🎰", disabled=(st.session_state.balance < bet_amount)):
         if st.session_state.balance >= bet_amount:
-            # Show spinning animation
             placeholder = st.empty()
             for _ in range(3):
                 temp_reels = [random.choice(SYMBOLS) for _ in range(5)]
@@ -239,7 +217,6 @@ with col_spin:
                             st.markdown(f"<div class='reel'>{temp_reels[i]}</div>", unsafe_allow_html=True)
                 time.sleep(0.2)
             
-            # Final result
             spin_slot(bet_amount)
             placeholder.empty()
             st.rerun()
