@@ -354,202 +354,79 @@
 # st.caption("⚠️ This is for entertainment purposes only. Always gamble responsibly!")
 
 import streamlit as st
-import random
-import os
-import string
 
-# Fallback word list
-DEFAULT_WORDS = [
-    "apple", "baker", "couch", "drink", "eagle", "flame", "giant", "habit", "ideal", "joker",
-    "knife", "lemon", "magic", "night", "ocean", "piano", "queen", "robot", "shark", "tease",
-    "union", "vivid", "whale", "xenon", "yacht", "zebra"
-]
+st.set_page_config(page_title="Collision Simulator", layout="centered")
 
-@st.cache_data
-def load_word_list(filepath="words.txt"):
-    if os.path.exists(filepath):
-        with open(filepath) as f:
-            words = [line.strip().lower() for line in f if len(line.strip()) == 5 and line.strip().isalpha()]
-        if words:
-            return words
-    return DEFAULT_WORDS
+st.title(":car: Collision Simulator")
 
-def get_target_word(words):
-    if "target_word" not in st.session_state:
-        st.session_state.target_word = random.choice(words)
-    return st.session_state.target_word
-
-def check_guess(guess, target):
-    feedback = ["gray"] * 5
-    guess_used = [False] * 5
-    target_used = [False] * 5
-    for i in range(5):
-        if guess[i] == target[i]:
-            feedback[i] = "green"
-            guess_used[i] = True
-            target_used[i] = True
-    for i in range(5):
-        if feedback[i] == "green":
-            continue
-        for j in range(5):
-            if guess[i] == target[j] and not target_used[j] and not guess_used[i]:
-                feedback[i] = "yellow"
-                target_used[j] = True
-                guess_used[i] = True
-                break
-    return feedback
-
-def update_keyboard(guess, feedback):
-    for i, letter in enumerate(guess):
-        prev_color = st.session_state.keyboard.get(letter, None)
-        color = feedback[i]
-        if prev_color == "green":
-            continue
-        if prev_color == "yellow" and color == "gray":
-            continue
-        st.session_state.keyboard[letter] = color
-
-# --- Improved colors and visibility --- #
-COLOR_MAP = {
-    "green": "#2ecc40",    # bright green
-    "yellow": "#f1c40f",   # bright yellow
-    "gray": "#9e9e9e",     # mid gray
-    "default": "#e0e0e0"   # light gray
-}
-
-BOX_STYLE = (
-    "background-color:{bg};"
-    "margin:6px;"
-    "border-radius:8px;"
-    "text-align:center;"
-    "padding:0.5em 0;"
-    "font-size:2.1em;"
-    "font-family:monospace;"
-    "font-weight:bold;"
-    "box-shadow: 2px 2px 6px #222;"
-    "letter-spacing:2px;"
-    "color:{fg};"
+st.write(
+    "Enter the initial velocities and masses for two objects. "
+    "Choose the collision type and see the final velocities and momenta after collision!"
 )
 
-KEY_STYLE = (
-    "background-color:{bg};"
-    "margin:5px 3px;"
-    "border-radius:6px;"
-    "text-align:center;"
-    "padding:0.55em 0;"
-    "font-size:1.25em;"
-    "font-family:monospace;"
-    "font-weight:bold;"
-    "box-shadow: 1px 1px 4px #222;"
-    "color:{fg};"
+col1, col2 = st.columns(2)
+with col1:
+    m1 = st.number_input("Mass of object 1 (kg)", min_value=0.01, value=2.0, step=0.01)
+    v1 = st.number_input("Initial velocity of object 1 (m/s)", value=3.0, step=0.01)
+with col2:
+    m2 = st.number_input("Mass of object 2 (kg)", min_value=0.01, value=1.0, step=0.01)
+    v2 = st.number_input("Initial velocity of object 2 (m/s)", value=-4.0, step=0.01)
+
+collision_type = st.selectbox(
+    "Collision type", 
+    ["Elastic", "Perfectly Inelastic"], 
+    help="Elastic: objects bounce off. Inelastic: objects stick together."
 )
-FG_COLOR = {
-    "green": "#fff",
-    "yellow": "#222",
-    "gray": "#fff",
-    "default": "#222"
-}
 
-def render_guesses():
-    for guess, feedback in st.session_state.guesses:
-        cols = st.columns(5, gap="small")
-        for i, letter in enumerate(guess):
-            fg = FG_COLOR.get(feedback[i], "#222")
-            style = BOX_STYLE.format(bg=COLOR_MAP[feedback[i]], fg=fg)
-            cols[i].markdown(
-                f"<div style='{style}'>{letter.upper()}</div>",
-                unsafe_allow_html=True
-            )
-    for _ in range(6 - len(st.session_state.guesses)):
-        cols = st.columns(5, gap="small")
-        for i in range(5):
-            style = BOX_STYLE.format(bg=COLOR_MAP['default'], fg=FG_COLOR['default'])
-            cols[i].markdown(
-                f"<div style='{style}'>&nbsp;</div>",
-                unsafe_allow_html=True
-            )
+if st.button("Simulate"):
+    st.subheader("Results")
+    st.write(f"**Collision type:** {collision_type}")
 
-def render_keyboard():
-    layout = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"]
-    row_spaces = [1, 2, 3]  # Indent last rows for validity
-    for row, space in zip(layout, row_spaces):
-        st.write("")  # add vertical space
-        row_cols = st.columns([0.25]*space + [1]*len(row) + [0.25]*space, gap="small")
-        for i, letter in enumerate(row):
-            color = st.session_state.keyboard.get(letter.lower(), "default")
-            fg = FG_COLOR.get(color, "#222")
-            style = KEY_STYLE.format(bg=COLOR_MAP[color], fg=fg)
-            row_cols[i+space].markdown(
-                f"<div style='{style}'>{letter}</div>",
-                unsafe_allow_html=True
-            )
+    # Elastic collision formulas:
+    # v1' = [(m1 - m2)/(m1 + m2)]*v1 + [2*m2/(m1 + m2)]*v2
+    # v2' = [2*m1/(m1 + m2)]*v1 + [(m2 - m1)/(m1 + m2)]*v2
+    if collision_type == "Elastic":
+        v1f = ((m1 - m2)/(m1 + m2))*v1 + ((2*m2)/(m1 + m2))*v2
+        v2f = ((2*m1)/(m1 + m2))*v1 + ((m2 - m1)/(m1 + m2))*v2
+    # Perfectly inelastic: objects stick together
+    else:
+        # Final velocity: combined mass moves together
+        v1f = v2f = (m1*v1 + m2*v2) / (m1 + m2)
+    
+    p1f = m1 * v1f
+    p2f = m2 * v2f
+    pf_total = p1f + p2f
 
-def show_stats():
-    wins = st.session_state.stats.get("wins", 0)
-    losses = st.session_state.stats.get("losses", 0)
-    st.markdown(f"**Games Won:** {wins} &nbsp;&nbsp;&nbsp; **Games Lost:** {losses}")
+    st.markdown(
+        f"**Final velocity of Object 1:** `{v1f:.4f}` m/s  \n"
+        f"**Final velocity of Object 2:** `{v2f:.4f}` m/s  \n"
+    )
+    st.markdown(
+        f"**Final momentum:**\n"
+        f"- Object 1: `{p1f:.4f}` kg·m/s\n"
+        f"- Object 2: `{p2f:.4f}` kg·m/s\n"
+        f"- **Combined: `{pf_total:.4f}` kg·m/s**"
+    )
 
-# --- Session state init ---
-if "guesses" not in st.session_state:
-    st.session_state.guesses = []
-if "game_over" not in st.session_state:
-    st.session_state.game_over = False
-if "keyboard" not in st.session_state:
-    st.session_state.keyboard = {}
-if "stats" not in st.session_state:
-    st.session_state.stats = {"wins": 0, "losses": 0}
+    # Optionally show initial momentum and kinetic energy for comparison
+    p1i = m1 * v1
+    p2i = m2 * v2
+    pi_total = p1i + p2i
+    st.markdown(
+        f"**Initial momentum:** `{pi_total:.4f}` kg·m/s"
+    )
 
-words = load_word_list()
-target_word = get_target_word(words)
+    KE1i = 0.5 * m1 * v1**2
+    KE2i = 0.5 * m2 * v2**2
+    KE1f = 0.5 * m1 * v1f**2
+    KE2f = 0.5 * m2 * v2f**2
+    KE_initial = KE1i + KE2i
+    KE_final = KE1f + KE2f
+    st.markdown(
+        f"**Initial kinetic energy:** `{KE_initial:.4f}` J  \n"
+        f"**Final kinetic energy:** `{KE_final:.4f}` J"
+    )
 
-st.markdown(
-    "<style>body { background-color: #212529 !important; }</style>",
-    unsafe_allow_html=True
-)
-st.title(":rainbow[Wordle] - Streamlit Edition")
-show_stats()
-st.divider()
+    if collision_type == "Perfectly Inelastic":
+        st.info("Kinetic energy is not conserved in inelastic collisions! Momentum is still conserved.")
 
-render_guesses()
-st.write("")
-render_keyboard()
-st.write("")
-
-if not st.session_state.game_over:
-    with st.form("guess_form"):
-        guess_input = st.text_input(
-            "Enter your guess:", max_chars=5, help="Type a 5-letter word", label_visibility="collapsed"
-        )
-        submitted = st.form_submit_button("Submit Guess")
-        message = ""
-
-        if submitted:
-            guess = guess_input.strip().lower()
-            # Only validity check: 5 letters, alphabetic
-            if len(guess) != 5 or not guess.isalpha():
-                message = "🚫 Enter a 5-letter alphabetic word."
-            else:
-                feedback = check_guess(guess, target_word)
-                st.session_state.guesses.append((guess, feedback))
-                update_keyboard(guess, feedback)
-
-                if guess == target_word:
-                    st.success(f"🎉 You guessed it! The word was **{target_word.upper()}**")
-                    st.session_state.game_over = True
-                    st.session_state.stats["wins"] += 1
-                elif len(st.session_state.guesses) == 6:
-                    st.error(f"😢 Game Over! The word was **{target_word.upper()}**")
-                    st.session_state.game_over = True
-                    st.session_state.stats["losses"] += 1
-            if message:
-                st.warning(message)
-
-if st.session_state.game_over:
-    st.divider()
-    if st.button("Play Again"):
-        # Clear everything for new game, don't rerun immediately
-        st.session_state.guesses = []
-        st.session_state.target_word = random.choice(words)
-        st.session_state.keyboard = {}
-        st.session_state.game_over = False
-        st.experimental_rerun()  # Triggers clean rerun after state is set
