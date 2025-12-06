@@ -355,7 +355,6 @@
 
 import streamlit as st
 import random
-import string
 
 # --- Load words ---
 @st.cache_data
@@ -364,24 +363,20 @@ def load_word_list(filepath="words.txt"):
         words = [line.strip().lower() for line in f if len(line.strip()) == 5 and line.strip().isalpha()]
     return words
 
-# --- Pick a random word for the day/session ---
 def get_target_word(words):
     if "target_word" not in st.session_state:
         st.session_state.target_word = random.choice(words)
     return st.session_state.target_word
 
-# --- Game logic: evaluate guess ---
 def check_guess(guess, target):
     feedback = ["gray"] * 5
     guess_used = [False] * 5
     target_used = [False] * 5
-    # First pass - correct positions
     for i in range(5):
         if guess[i] == target[i]:
             feedback[i] = "green"
             guess_used[i] = True
             target_used[i] = True
-    # Second pass - wrong positions
     for i in range(5):
         if feedback[i] == "green":
             continue
@@ -393,19 +388,16 @@ def check_guess(guess, target):
                 break
     return feedback
 
-# --- Track keyboard color ---
 def update_keyboard(guess, feedback):
     for i, letter in enumerate(guess):
         prev_color = st.session_state.keyboard.get(letter, None)
         color = feedback[i]
-        # Priority: green > yellow > gray
         if prev_color == "green":
             continue
         if prev_color == "yellow" and color == "gray":
             continue
         st.session_state.keyboard[letter] = color
 
-# --- UI Helpers ---
 COLOR_MAP = {
     "green": "#6aaa64",
     "yellow": "#c9b458",
@@ -421,7 +413,6 @@ def render_guesses():
                 f"<div style='background-color:{COLOR_MAP[feedback[i]]};border-radius:8px;text-align:center;padding:0.5em 0;font-size:1.5em;color:white;font-weight:bold;'>{letter.upper()}</div>",
                 unsafe_allow_html=True
             )
-    # Render empty grid for remaining attempts
     for _ in range(6 - len(st.session_state.guesses)):
         cols = st.columns(5)
         for i in range(5):
@@ -446,9 +437,7 @@ def show_stats():
     losses = st.session_state.stats.get("losses", 0)
     st.markdown(f"**Games Won:** {wins} &nbsp;&nbsp;&nbsp; **Games Lost:** {losses}")
 
-# --- Main Streamlit App ---
-
-# Initialize session state variables
+# --- Session state init ---
 if "guesses" not in st.session_state:
     st.session_state.guesses = []
 if "game_over" not in st.session_state:
@@ -459,9 +448,13 @@ if "stats" not in st.session_state:
     st.session_state.stats = {"wins": 0, "losses": 0}
 
 words = load_word_list()
+if not words:
+    st.error("Word list missing or empty! Add 5-letter words to words.txt.")
+    st.stop()
+
 target_word = get_target_word(words)
 
-st.title(":blue[Wordle] in Streamlit")
+st.title(":blue[Wordle] - Streamlit Edition")
 show_stats()
 st.divider()
 
@@ -473,7 +466,7 @@ st.write("")
 if not st.session_state.game_over:
     with st.form("guess_form"):
         guess_input = st.text_input(
-            "Enter your guess:", max_chars=5, help="Type a 5-letter word and press Enter", label_visibility="collapsed"
+            "Enter your guess:", max_chars=5, help="Type a 5-letter word", label_visibility="collapsed"
         )
         submitted = st.form_submit_button("Submit Guess")
         message = ""
