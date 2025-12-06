@@ -26,11 +26,11 @@ if 'spinning' not in st.session_state:
 # Symbols for the slot machine
 SYMBOLS = ['🍒', '🍋', '🍊', '🍇', '⭐', '💎', '7️⃣', '🔔']
 
-# Strategic parameters
+# Strategic parameters - MODIFIED
 INITIAL_WIN_SPINS = 5
-INITIAL_WIN_RATE = 0.40
+INITIAL_WIN_RATE = 0.50  # Changed from 0.40 to 0.50 (50% win rate)
 HOUSE_ADVANTAGE_START = 6
-HOUSE_WIN_PROBABILITY = 0.85
+HOUSE_WIN_PROBABILITY = 0.10  # Changed from 0.85 to 0.10 (90% win rate after 5 spins)
 
 def check_win(reels):
     """Check if reels result in a win and calculate payout multiplier"""
@@ -102,9 +102,12 @@ def spin_slot(bet_amount):
     
     should_win = False
     
+    # MODIFIED LOGIC
     if st.session_state.total_spins <= INITIAL_WIN_SPINS:
+        # First 5 spins: 50% chance to win
         should_win = random.random() < INITIAL_WIN_RATE
     else:
+        # After 5 spins: 90% chance to win (10% chance to lose)
         should_win = random.random() > HOUSE_WIN_PROBABILITY
     
     if should_win:
@@ -192,14 +195,14 @@ with st.expander("📖 RULE BOOK - Click to Read", expanded=False):
     
     ### 💰 Payout Structure
     
-    #### Early Game (First 5 Spins)
+    #### Early Game (First 5 Spins) - 50% Win Rate
     - **Three of a Kind**: 2x your bet
     - **Four of a Kind**: 4x your bet
     - **Five of a Kind**: 8x your bet
     - **Lucky Sevens (7️⃣7️⃣7️⃣7️⃣7️⃣)**: 10x your bet
     - **Diamond Jackpot (💎💎💎💎💎)**: 20x your bet
     
-    #### Full Game (After 5 Spins)
+    #### Full Game (After 5 Spins) - 90% Win Rate
     - **Three of a Kind**: 5x your bet
     - **Four of a Kind**: 15x your bet
     - **Five of a Kind**: 30x your bet
@@ -209,7 +212,8 @@ with st.expander("📖 RULE BOOK - Click to Read", expanded=False):
     ### 🎲 Game Mechanics
     - Starting balance: **$1,000**
     - Minimum bet: **$10**
-    - Win rate adjusts based on number of spins
+    - **First 5 spins: 50% win chance**
+    - **After 5 spins: 90% win chance**
     - Your bet amount is saved between spins
     - Use the RESET button to restart with $1,000
     
@@ -322,7 +326,7 @@ st.markdown("### 💰 PAYOUT TABLE")
 
 # Show different payouts based on game stage
 if st.session_state.total_spins <= INITIAL_WIN_SPINS:
-    st.info("🎮 Early Game Payouts (First 5 Spins)")
+    st.info("🎮 Early Game Payouts (First 5 Spins - 50% Win Rate)")
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("""
@@ -336,7 +340,7 @@ if st.session_state.total_spins <= INITIAL_WIN_SPINS:
         - **Any 3 of a kind** → 2x bet
         """)
 else:
-    st.success("🔥 Full Payouts (After 5 Spins)")
+    st.success("🔥 Full Payouts (After 5 Spins - 90% Win Rate)")
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("""
