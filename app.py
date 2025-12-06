@@ -371,7 +371,6 @@ def load_word_list(filepath="words.txt"):
             words = [line.strip().lower() for line in f if len(line.strip()) == 5 and line.strip().isalpha()]
         if words:
             return words
-    # fallback
     return DEFAULT_WORDS
 
 def get_target_word(words):
@@ -409,37 +408,78 @@ def update_keyboard(guess, feedback):
             continue
         st.session_state.keyboard[letter] = color
 
+# --- Improved colors and visibility --- #
 COLOR_MAP = {
-    "green": "#6aaa64",
-    "yellow": "#c9b458",
-    "gray": "#787c7e",
-    "default": "#d3d6da"
+    "green": "#2ecc40",    # bright green
+    "yellow": "#f1c40f",   # bright yellow
+    "gray": "#9e9e9e",     # mid gray
+    "default": "#e0e0e0"   # light gray
+}
+
+BOX_STYLE = (
+    "background-color:{bg};"
+    "margin:6px;"
+    "border-radius:8px;"
+    "text-align:center;"
+    "padding:0.5em 0;"
+    "font-size:2.1em;"
+    "font-family:monospace;"
+    "font-weight:bold;"
+    "box-shadow: 2px 2px 6px #222;"
+    "letter-spacing:2px;"
+    "color:{fg};"
+)
+
+KEY_STYLE = (
+    "background-color:{bg};"
+    "margin:5px 3px;"
+    "border-radius:6px;"
+    "text-align:center;"
+    "padding:0.55em 0;"
+    "font-size:1.25em;"
+    "font-family:monospace;"
+    "font-weight:bold;"
+    "box-shadow: 1px 1px 4px #222;"
+    "color:{fg};"
+)
+FG_COLOR = {
+    "green": "#fff",
+    "yellow": "#222",
+    "gray": "#fff",
+    "default": "#222"
 }
 
 def render_guesses():
     for guess, feedback in st.session_state.guesses:
-        cols = st.columns(5)
+        cols = st.columns(5, gap="small")
         for i, letter in enumerate(guess):
+            fg = FG_COLOR.get(feedback[i], "#222")
+            style = BOX_STYLE.format(bg=COLOR_MAP[feedback[i]], fg=fg)
             cols[i].markdown(
-                f"<div style='background-color:{COLOR_MAP[feedback[i]]};border-radius:8px;text-align:center;padding:0.5em 0;font-size:1.5em;color:white;font-weight:bold;'>{letter.upper()}</div>",
+                f"<div style='{style}'>{letter.upper()}</div>",
                 unsafe_allow_html=True
             )
     for _ in range(6 - len(st.session_state.guesses)):
-        cols = st.columns(5)
+        cols = st.columns(5, gap="small")
         for i in range(5):
+            style = BOX_STYLE.format(bg=COLOR_MAP['default'], fg=FG_COLOR['default'])
             cols[i].markdown(
-                f"<div style='background-color:{COLOR_MAP['default']};border-radius:8px;text-align:center;padding:0.5em 0;font-size:1.5em;color:white;font-weight:bold;'>&nbsp;</div>",
+                f"<div style='{style}'>&nbsp;</div>",
                 unsafe_allow_html=True
             )
 
 def render_keyboard():
-    layout = ["qwertyuiop", "asdfghjkl", "zxcvbnm"]
-    for row in layout:
-        row_cols = st.columns(len(row))
+    layout = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"]
+    row_spaces = [1, 2, 3]  # Indent last rows for validity
+    for row, space in zip(layout, row_spaces):
+        st.write("")  # add vertical space
+        row_cols = st.columns([0.25]*space + [1]*len(row) + [0.25]*space, gap="small")
         for i, letter in enumerate(row):
-            color = COLOR_MAP[st.session_state.keyboard.get(letter, "default")]
-            row_cols[i].markdown(
-                f"<div style='background-color:{color};border-radius:5px;text-align:center;padding:0.7em 0;font-size:1.2em;color:white;font-weight:bold;margin:1px'>{letter.upper()}</div>",
+            color = st.session_state.keyboard.get(letter.lower(), "default")
+            fg = FG_COLOR.get(color, "#222")
+            style = KEY_STYLE.format(bg=COLOR_MAP[color], fg=fg)
+            row_cols[i+space].markdown(
+                f"<div style='{style}'>{letter}</div>",
                 unsafe_allow_html=True
             )
 
@@ -459,10 +499,13 @@ if "stats" not in st.session_state:
     st.session_state.stats = {"wins": 0, "losses": 0}
 
 words = load_word_list()
-
 target_word = get_target_word(words)
 
-st.title(":blue[Wordle] - Streamlit Edition")
+st.markdown(
+    "<style>body { background-color: #212529 !important; }</style>",
+    unsafe_allow_html=True
+)
+st.title(":rainbow[Wordle] - Streamlit Edition")
 show_stats()
 st.divider()
 
