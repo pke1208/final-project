@@ -354,15 +354,11 @@
 # st.caption("⚠️ This is for entertainment purposes only. Always gamble responsibly!")
 
 import streamlit as st
+import numpy as np
+import plotly.graph_objects as go
 
 st.set_page_config(page_title="Collision Simulator", layout="centered")
-
-st.title(":car: Collision Simulator")
-
-st.write(
-    "Enter the initial velocities and masses for two objects. "
-    "Choose the collision type and see the final velocities and momenta after collision!"
-)
+st.title(":car: Collision Simulator with Animation")
 
 col1, col2 = st.columns(2)
 with col1:
@@ -373,60 +369,97 @@ with col2:
     v2 = st.number_input("Initial velocity of object 2 (m/s)", value=-4.0, step=0.01)
 
 collision_type = st.selectbox(
-    "Collision type", 
-    ["Elastic", "Perfectly Inelastic"], 
+    "Collision type", ["Elastic", "Perfectly Inelastic"],
     help="Elastic: objects bounce off. Inelastic: objects stick together."
 )
 
-if st.button("Simulate"):
-    st.subheader("Results")
-    st.write(f"**Collision type:** {collision_type}")
+st.write("Objects start at fixed positions. Timeline shows motion until and after collision.")
 
-    # Elastic collision formulas:
-    # v1' = [(m1 - m2)/(m1 + m2)]*v1 + [2*m2/(m1 + m2)]*v2
-    # v2' = [2*m1/(m1 + m2)]*v1 + [(m2 - m1)/(m1 + m2)]*v2
+# Set up scenario
+x1_init = 0  # position of object 1 (meters)
+x2_init = 10 # position of object 2 (meters)
+
+# Calculate collision time
+if v1 == v2:
+    st.warning("Objects have equal velocity, no collision will occur.")
+    collision_time = None
+else:
+    collision_time = (x2_init - x1_init) / (v1 - v2)
+
+simulate = st.button("Simulate with Animation")
+
+if simulate and collision_time is not None and collision_time > 0:
+    # Physics for final velocities
     if collision_type == "Elastic":
         v1f = ((m1 - m2)/(m1 + m2))*v1 + ((2*m2)/(m1 + m2))*v2
         v2f = ((2*m1)/(m1 + m2))*v1 + ((m2 - m1)/(m1 + m2))*v2
-    # Perfectly inelastic: objects stick together
     else:
-        # Final velocity: combined mass moves together
         v1f = v2f = (m1*v1 + m2*v2) / (m1 + m2)
+
+    T_total = collision_time + 3  # Simulate 3 seconds after collision
+    t_steps = np.linspace(0, T_total, 100)  # 100 frames
+
+    x1 = np.zeros_like(t_steps)
+    x2 = np.zeros_like(t_steps)
+
+    # Pre-collision: uniform motion
+    for i, t in enumerate(t_steps):
+        if t < collision_time:
+            x1[i] = x1_init + v1 * t
+            x2[i] = x2_init + v2 * t
+        else:
+            # After collision
+            dt = t - collision_time
+            if collision_type == "Elastic":
+                x1[i] = x1_init + v1 * collision_time + v1f * dt
+                x2[i] = x2_init + v2 * collision_time + v2f * dt
+            else:  # Perfectly inelastic (stick together after collision)
+                x1[i] = x1_init + v1 * collision_time + v1f * dt
+                x2[i] = x2_init + v2 * collision_time + v2f * dt
+
+    # Visualization with slider
+    frame = st.slider("Animation timeline (seconds)", 0, len(t_steps)-1, 0, help="Slide to see object positions over time.")
+    t_now = t_steps[frame]
+
+    fig = go.Figure()
+
+    fig.add_shape(
+        type="circle",
+        x0=x1[frame]-0.3, y0=0, x1=x1[frame]+0.3, y1=0.6,
+        line_color="blue", fillcolor="blue"
+    )
+    fig.add_shape(
+        type="circle",
+        x0=x2[frame]-0.3, y0=0, x1=x2[frame]+0.3, y1=0.6,
+        line_color="red", fillcolor="red"
+    )
+    fig.add_trace(go.Scatter(
+        x=[x1[frame]], y=[0.3], text=[f"1 ({m1}kg)"], mode="text", showlegend=False
+    ))
+    fig.add_trace(go.Scatter(
+        x=[x2[frame]], y=[0.3], text=[f"2 ({m2}kg)"], mode="text", showlegend=False
+    ))
+
+    fig.update_xaxes(range=[min(x1_init, x2_init)-2, max(x1_init, x2_init)+5], showticklabels=False)
+    fig.update_yaxes(range=[-0.5,1], showticklabels=False)
+    fig.update_layout(
+        width=700, height=250, margin=dict(l=40, r=40, t=30, b=15),
+        plot_bgcolor="#f8f2df", paper_bgcolor="#f8f2df"
+    )
+
+    st.plotly_chart(fig)
+
+    # Mark collision instant visually
+    if t_now >= collision_time:
+        st.success(f"Collision occurred at t = {collision_time:.2f} s")
+    else:
+        st.info(f"Objects are moving towards collision. Est. collision at t = {collision_time:.2f} s")
     
-    p1f = m1 * v1f
-    p2f = m2 * v2f
-    pf_total = p1f + p2f
+    st.markdown(f"**At time t = {t_now:.2f} sec**")
+    st.markdown(f"- Position of object 1 (blue, mass={m1}kg): `{x1[frame]:.2f} m`")
+    st.markdown(f"- Position of object 2 (red, mass={m2}kg): `{x2[frame]:.2f} m`")
 
-    st.markdown(
-        f"**Final velocity of Object 1:** `{v1f:.4f}` m/s  \n"
-        f"**Final velocity of Object 2:** `{v2f:.4f}` m/s  \n"
-    )
-    st.markdown(
-        f"**Final momentum:**\n"
-        f"- Object 1: `{p1f:.4f}` kg·m/s\n"
-        f"- Object 2: `{p2f:.4f}` kg·m/s\n"
-        f"- **Combined: `{pf_total:.4f}` kg·m/s**"
-    )
-
-    # Optionally show initial momentum and kinetic energy for comparison
-    p1i = m1 * v1
-    p2i = m2 * v2
-    pi_total = p1i + p2i
-    st.markdown(
-        f"**Initial momentum:** `{pi_total:.4f}` kg·m/s"
-    )
-
-    KE1i = 0.5 * m1 * v1**2
-    KE2i = 0.5 * m2 * v2**2
-    KE1f = 0.5 * m1 * v1f**2
-    KE2f = 0.5 * m2 * v2f**2
-    KE_initial = KE1i + KE2i
-    KE_final = KE1f + KE2f
-    st.markdown(
-        f"**Initial kinetic energy:** `{KE_initial:.4f}` J  \n"
-        f"**Final kinetic energy:** `{KE_final:.4f}` J"
-    )
-
-    if collision_type == "Perfectly Inelastic":
-        st.info("Kinetic energy is not conserved in inelastic collisions! Momentum is still conserved.")
-
+    st.markdown("---")
+    st.markdown(f"**Final velocity object 1:** `{v1f:.3f}` m/s  \n**Final velocity object 2:** `{v2f:.3f}` m/s")
+else:
+    st.info("Set parameters and press Simulate to see object positions over time.")
