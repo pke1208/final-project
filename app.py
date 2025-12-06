@@ -202,7 +202,7 @@ with st.expander("📖 RULE BOOK - Click to Read", expanded=False):
     - **Lucky Sevens (7️⃣7️⃣7️⃣7️⃣7️⃣)**: 10x your bet
     - **Diamond Jackpot (💎💎💎💎💎)**: 20x your bet
     
-    #### Full Game (After 5 Spins)
+    #### Full Game (After 5 Spins) 
     - **Three of a Kind**: 5x your bet
     - **Four of a Kind**: 15x your bet
     - **Five of a Kind**: 30x your bet
@@ -245,11 +245,32 @@ with col4:
 
 # Bet input
 st.markdown("---")
+
+# Check if balance is 0 or too low
+if st.session_state.balance <= 0:
+    st.error("💔 Game Over! Your balance has reached $0.")
+    st.markdown("### 🎮 Would you like to play again?")
+    
+    col_play_again, col_empty = st.columns([1, 2])
+    with col_play_again:
+        if st.button("🔄 PLAY AGAIN", use_container_width=True):
+            st.session_state.balance = 1000
+            st.session_state.total_spins = 0
+            st.session_state.total_wins = 0
+            st.session_state.reels = ['🍒', '🍋', '🍊', '🍇', '⭐']
+            st.session_state.message = "Place your bet and spin!"
+            st.session_state.last_win_amount = 0
+            st.session_state.bet_amount = 50
+            st.session_state.spinning = False
+            st.rerun()
+    
+    st.stop()
+
 bet_amount = st.number_input(
     "💵 Enter your bet amount:",
     min_value=10,
-    max_value=st.session_state.balance if st.session_state.balance > 0 else 10,
-    value=st.session_state.bet_amount,
+    max_value=max(st.session_state.balance, 10),
+    value=min(st.session_state.bet_amount, st.session_state.balance),
     step=10,
     key='bet_input'
 )
